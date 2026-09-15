@@ -13,6 +13,11 @@ export interface TelegramSendResult {
  * see it, they only ever call OUR /api/notify/trigger endpoint.
  */
 export async function sendTelegramMessage(text: string, attempts = 3): Promise<TelegramSendResult> {
+  if (!config.telegramBotToken || !config.telegramChatId) {
+    logger.warn("Telegram not configured: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing. Set them in Render dashboard → Environment.");
+    return { ok: false, error: "telegram_not_configured" };
+  }
+
   const url = `https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {

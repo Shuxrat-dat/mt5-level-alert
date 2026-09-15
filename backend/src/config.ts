@@ -1,12 +1,17 @@
 import "dotenv/config";
 import path from "path";
 
-function required(name: string): string {
+function optional(name: string): string {
   const v = process.env[name];
   if (!v || v === "REPLACE_ME") {
-    throw new Error(
-      `[config] Missing required environment variable: ${name}. Copy .env.example to .env and fill it in.`
+    // Warn at startup but do NOT crash — variable can be added via Render
+    // dashboard after the first deploy.  The notify route will return a
+    // clear 503 if it tries to send a message without these values.
+    console.warn(
+      `[config] WARNING: environment variable ${name} is not set. ` +
+        `Telegram notifications will be disabled until it is provided.`
     );
+    return "";
   }
   return v;
 }
@@ -25,8 +30,11 @@ export const config = {
   port: intFromEnv("PORT", 8080),
   dbPath: process.env.DB_PATH || path.join(__dirname, "..", "data", "coordination.db"),
 
-  telegramBotToken: required("TELEGRAM_BOT_TOKEN"),
-  telegramChatId: required("TELEGRAM_CHAT_ID"),
+  // Telegram vars are validated lazily (only when a notification is sent).
+  // This allows the server to start and accept heartbeats even before the
+  // operator has configured Telegram credentials on the hosting platform.
+  telegramBotToken: optional("TELEGRAM_BOT_TOKEN"),
+  telegramChatId: optional("TELEGRAM_CHAT_ID"),
 
   heartbeatIntervalSec: intFromEnv("HEARTBEAT_INTERVAL_SEC", 5),
   failoverTimeoutSec: intFromEnv("FAILOVER_TIMEOUT_SEC", 15),
