@@ -25,6 +25,13 @@ export function createApp(db: AppDb): Express {
   // Centralized error handler - never leak stack traces to clients.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    // express.json() throws a SyntaxError for malformed request bodies
+    // (e.g. Render health probes, badly formed MT5 requests).
+    // Return 400 and log at WARN, not ERROR, so logs stay clean.
+    if (err instanceof SyntaxError && "body" in err) {
+      logger.warn("Malformed JSON body", { error: String(err) });
+      return res.status(400).json({ error: "invalid_json" });
+    }
     logger.error("Unhandled error", { error: String(err) });
     res.status(500).json({ error: "internal_error" });
   });
