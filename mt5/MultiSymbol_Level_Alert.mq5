@@ -228,8 +228,11 @@ string GenerateUUIDv4()
 int HttpPost(string url, string body, string &responseBody)
 {
    char postData[];
-   int n = StringToCharArray(body, postData, 0, StringLen(body), CP_UTF8);
-   if(ArraySize(postData) > 0) ArrayResize(postData, ArraySize(postData) - 1);
+   // StringToCharArray returns the number of bytes written INCLUDING the trailing
+   // null terminator.  We must strip that null before sending — otherwise the
+   // JSON body contains a \0 byte that confuses every HTTP server's JSON parser.
+   int n = StringToCharArray(body, postData, 0, WHOLE_ARRAY, CP_UTF8);
+   if(n > 1) ArrayResize(postData, n - 1);   // strip null terminator
    char result[];
    string resultHeaders;
    string headers = "Content-Type: application/json\r\nAuthorization: Bearer " + DeviceToken + "\r\n";
